@@ -1,12 +1,12 @@
 rm(list = ls())
 install.packages("Seurat")
-
+if(F){
 BiocManager::install("DESeq2")
 BiocManager::install("edgeR")
-
+}
 rm(list=ls())
 options(stringsAsFactors = F)
-b<-read.csv(file='D:/ZZZ/DOC//NUTRI/Data/GEO/GSE121539 xgal RNAseq/seqgeneset/redox.csv',header =T,row.names = 1 )
+b<-read.csv(file='D:csv',header =T,row.names = 1 )
                     
 exprSet = b
 suppressMessages(library(DESeq2))
