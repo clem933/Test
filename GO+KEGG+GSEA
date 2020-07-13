@@ -48,3 +48,5 @@ EGG <- enrichKEGG(gene = gene$ENTREZID,
                  organism = 'hsa',
                  pvalueCutoff = 0.05,
                  use_internal_data =T)
+                 
+
