@@ -8,7 +8,6 @@ BiocManager::install('...')
 if(F){
  library('GEOquery')
  library('gplots')
- library('limma') 
  setwd()
  eSet <- getGEO('...',destdir = ".",
                 AnnotGPL = F,
@@ -21,35 +20,57 @@ save(eSet,file='..._eSet.Rdata')
  b=eSet[[1]]
  exprSet=exprs(b)
  phe=pData(b)
- 
+############################################### 
  {boxplot(exprSet,outline=F, notch=T, las=2)
  
- library(limma) 
-  exprSet=normalizeBetweenArrays(exprSet)
-  boxplot(exprSet,outline=FALSE, notch=T, las=2)
- 
+ ex <- exprSet
+qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+LogC <- (qx[5] > 100) ||
+  (qx[6]-qx[1] > 50 && qx[2] > 0) ||
+  (qx[2] > 0 && qx[2] < 1 && qx[4] > 1 && qx[4] < 2)
+
+if (LogC) { 
+  ex[which(ex <= 0)] <- NaN
+  ## 取log2
+  exprSet <- log2(ex)
+  print("log2 transform finished")
+  }else{
+    print("log2 transform not needed")
+  }
+  
+  library(limma) 
+exprSet=normalizeBetweenArrays(exprSet)
+boxplot(exprSet,outline=FALSE, notch=T, las=2)
+###############################################
  library(stringr)
   group_list= str_split(as.character(phe$title),' ',simplify = T)[,1]
+  exprSet <- as.data.frame(exprSet)
   save(exprSet,group_list,
      file='..._exprSet.Rdata')
- 
-{expr.df <- read.table(file = "..._series_matrix.txt", header =TRUE,
+###############################################
+expr.df <- read.table(file = "..._series_matrix.txt", header =TRUE,
                       comment.char = "!", row.names=1)  
-                      ### matrix}
- 
+                      ### matrix
+################################################ 
  gpl...	<- getGEO('...')
- gpl...
- write.csv(symbol,"symbol.csv")
  colnames(Table(...))
  symbol <- Table(gpl...)[c('ID','Gene Symbol')]; head(symbol)
- exprSet <- as.data.frame(exprSet)
- write.csv(exprSet,"exprSet.csv")
-
+ write.csv(symbol,"symbol.csv")
+ 
+ ID <- rownames(exprSet)
+exprSet <- exprSet %>% 
+  mutate(rowMean =rowMeans(.[,-1]),ID = ID) %>% 
+  arrange(desc(rowMean)) %>% 
+  distinct(ID,.keep_all = T) %>% 
+  dplyr::select(-rowMean) %>% 
+  column_to_rownames("ID")
+ ############################################### 
  sample <- phe$geo_accession
- treat_time <- rep(c("2h","18h"),each=11)
- treat_type <- rep(c("DN","ctrl"), c(9,13))
+ treat_time <- rep(c("...","..."),each=..)
+ treat_type <- rep(c("...","..."), c(..,..))
  design_df <- data.frame(sample, treat_type)
  
+ library('limma') 
  TS <- paste( design_df$treat_type, sep=".")
  TS
  TS <- factor(TS, levels = unique(TS))
@@ -73,6 +94,8 @@ save(eSet,file='..._eSet.Rdata')
  colnames(symbol);colnames(limmaOP)
  DEG=merge(limmaOP,symbol,by.x = "X",by.y = "ID")
  write.csv(DEG,"DEG.csv")
+ ###################################################
+
  
  getwd()
  results <- read.csv('results.csv', header = T)
