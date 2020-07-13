@@ -2,12 +2,12 @@ rm(list = ls())
 
 install.packages("...")
 if(!requireNamespace("...", quietly = TRUE)) install.packages("BiocManager")
-
-BiocManager::install('...')
-
-if(F){
+BiocManager::in
  library('GEOquery')
- library('gplots')
+stall('...')
+suppressMessages(library(clusterProfiler))
+
+if(F){ library('gplots')
  setwd()
  eSet <- getGEO('...',destdir = ".",
                 AnnotGPL = F,
@@ -20,7 +20,7 @@ save(eSet,file='..._eSet.Rdata')
  b=eSet[[1]]
  exprSet=exprs(b)
  phe=pData(b)
-############################################### 
+###############################################   
  {boxplot(exprSet,outline=F, notch=T, las=2)
  
  ex <- exprSet
@@ -31,7 +31,6 @@ LogC <- (qx[5] > 100) ||
 
 if (LogC) { 
   ex[which(ex <= 0)] <- NaN
-  ## 取log2
   exprSet <- log2(ex)
   print("log2 transform finished")
   }else{
@@ -72,14 +71,19 @@ exprSet <- exprSet %>%
  
  library('limma') 
  TS <- paste( design_df$treat_type, sep=".")
- TS
  TS <- factor(TS, levels = unique(TS))
  design <- model.matrix(~0+TS)
  fit <- lmFit(exprSet, design)
+ ###############################################
+ pairinfo = factor(rep(..,.))
+ TS <- c(rep('...',18),rep('...',18))
+ TS <- factor(group,levels = c("...","..."),ordered = F)
+ design <- model.matrix(~TS+pairinfo)
+ ################################################
  
- diff= cont.matrix <- makeContrasts(TSDN-TSctrl, levels=design) 
-   #vs2  = TS18.PE2.0_embolized-TS2.PE2.0_embolized,
-   #vs3  = TS18.PE1.3_embolized-TS2.PE1.3_embolized,
+ diff= cont.matrix <- makeContrasts(TS...-TS..., levels=design) 
+   #vs2  = TS...-TS...,
+   #vs3  = TS...-TS...,
 
  fit2 <- contrasts.fit(fit, cont.matrix)
  results <- decideTests(fit2)
@@ -113,7 +117,7 @@ exprSet <- exprSet %>%
  write.table(exprset3, file = 'results.txt', sep = "\t", row.names = F)
  
 }
-
+##############################################################
 if(F){
   rm(list = ls())
  library("GEOquery")
@@ -133,32 +137,7 @@ if(F){
  write.table(exprSet, "expr_rma_matrix.txt", quote=F, sep="\t")
  exprSet <- exprs(gset.rma)
 }
-
-
-
- library('gplots')
- library('limma') 
- foldChange=0.5 
- padj=0.05
- exprSet=read.csv("exprSet.csv", row.names = 1)
-dim(exprSet)
-exprSet1=log2(exprSet)
-par(mfrow=c(1,2))
-boxplot(data.frame(exprSet),col="blue") 
-exprSet[1:5,1:5]
-group <- read.csv("eBayes.csv",header=TRUE,row.names=1,check.names = FALSE)
-group <- group[,1] 
-design <- model.matrix(~0+factor(group))
-colnames(design)=levels(factor(group))
-rownames(design)=colnames(exprSet)
-
-fit <- lmFit(exprSet,design)
-cont.matrix<-makeContrasts(paste0(unique(group),collapse = "-"),levels = design)
-fit2=contrasts.fit(fit,cont.matrix)
-fit2 <- eBayes(fit2)  ## default no trend !!!
-##eBayes() with trend=TRUE
-tempOutput = topTable(fit2,coef=1,n=Inf,adjust="BH") 
-nrDEG = na.omit(tempOutput)
+#####################################################################
 
 allDiff <- nrDEG
 diff=allDiff
