@@ -1,0 +1,11 @@
+##################################unfinished
+BiocManager::install('makecdfenv') 
+library(makecdfenv)
+pkgpath <- tempdir()
+make.cdf.package("Mouse4302.cdf", 
+                 cdf.path="C:/Users/xueer/Desktop/CDF", 
+                 compress=FALSE, species = "Mus", package.path = pkgpath)
+dir(pkgpath)
+
+library(mouse4302cdf)
+raw.data=ReadAffy(verbose=TRUE, cdfname="mouse4302cdf")
