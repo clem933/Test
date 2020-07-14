@@ -1,0 +1,36 @@
+########################################## 
+##################biomaRt#################
+##########################################
+require("biomaRt")
+listMarts()
+listmart<-listDatasets(mart)
+View(listmart)
+ensembl = useDataset("mmusculus_gene_ensembl",mart=mart)
+attributes = listAttributes(ensembl)
+filters = listFilters(ensembl)
+dim(attributes)
+attributes[1:5,] 
+attributes[104:136,] 
+prod<-attributes$description
+probe<-attributes[grepl("probe",prod),]
+str(probe)
+probe
+affyids=c("1415682_at")
+getBM(attributes = c('affy_mouse430_2', 'hgnc_symbol','ensembl_gene_id','external_gene_name'),
+      filters = 'affy_mouse430_2', 
+      values = affyids, 
+      mart = ensembl)
+########################################
+################
+#########################################
+BiocManager::install("#mouse430a2.db#")
+library(...)
+x <- #mouse430a2ALIAS2PROBE#
+mapped_probes <- mappedkeys(x)
+xx <- as.data.frame(x[mapped_probes])
+if(length(xx) > 0){
+  # Get the probe identifiers for the first two aliases
+  xx[1:2]
+  # Get the first one
+  xx[[1]]???
+}
