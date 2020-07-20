@@ -48,5 +48,51 @@ EGG <- enrichKEGG(gene = gene$ENTREZID,
                  organism = 'hsa',
                  pvalueCutoff = 0.05,
                  use_internal_data =T)
-                 
+############################################################
+rm(list = ls())
+ library(clusterProfiler)
+ load(file = "DEG.Rda")
+ gene=read.csv(file='conv_.csv')
+ gene=gene[,c(1:2)]
+
+ colnames(gene) <- c("SYMBOL","entrezgene_id")
+ gene <- dplyr::distinct(gene,SYMBOL,.keep_all=TRUE)
+ save(gene,file="gene_GSEA.Rdata")
+ 
+ load(file="gene_GSEA.Rdata")
+ gene_df <- data.frame(logFC=DEG$logFC,
+                       SYMBOL = DEG[,1])
+ length(intersect(gene_df[,2],gene[,1]))
+ gene_df <- merge(gene_df,gene,by="SYMBOL")
+ geneList <- gene_df$logFC
+ gene_df$SYMBOL=str_to_upper(gene_df$SYMBOL)
+ names(geneList) = gene_df$SYMBOL
+ geneList = sort(geneList, decreasing = TRUE)
+ head(geneList)
+
+ library(clusterProfiler)
+ geneset <- read.gmt("....gmt")
+ y <- GSEA(geneList,TERM2GENE =geneset)
+
+ library(ggplot2)
+ cnetplot(y,foldChange = geneList)
+ y2<- setReadable(y,OrgDb=org.Hs.eg.db, keyType = "SYMBOL")
+ cnetplot(y2,showCategory = 4,
+          foldChange = geneList,
+          colorEdge = T)
+  dotplot(y,showCategory=12,split=".sign")+facet_grid(~.sign)
+
+ library(stringi)
+ library(ggplot2)
+ dotplot(y,showCategory=12,split=".sign")+
+   facet_grid(~.sign)+
+   scale_y_discrete(labels=function(x) stri_sub(x,10))
+
+  yd <- data.frame(y)
+ library(enrichplot)
+ gseaplot2(y,"RODWELL_AGING_KIDNEY_UP",color = "red",pvalue_table = T)
+ gseaplot2(y,10,color = "red",pvalue_table = T)
+ ridgeplot(y)
+ gseaplot2(y, geneSetID = 1:3)
+ upsetplot(y) 
 
