@@ -22,6 +22,8 @@ save(eSet,file='..._eSet.Rdata')
  phe=pData(b)
 ###############################################   
  {boxplot(exprSet,outline=F, notch=T, las=2)
+ exprSet = normalizeBetweenArray(exprSet)
+ boxplot(exprSet,outline=F, notch=T, las=2)
  
  ex <- exprSet
 qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
@@ -97,6 +99,14 @@ exprSet <- exprSet %>%
  length(intersect(limmaOP[,1],symbol[,1]))
  colnames(symbol);colnames(limmaOP)
  DEG=merge(limmaOP,symbol,by.x = "X",by.y = "ID")
+ DEG <- subset(DEG,abs(logFC) >0 & adj.P.Val < 0.05)
+ DEG=DEG[,c(8,2:7)]
+ library(dplyr)
+ DEG<-DEG %>%
+   na_if("") %>%
+   na.omit
+ save(DEG,file = 'DEG.Rda')
+ write.csv(DEG,"DEG.csv")
  write.csv(DEG,"DEG.csv")
  ###################################################
 
