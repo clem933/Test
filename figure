@@ -1,0 +1,27 @@
+####################Venn
+library(VennDiagram)
+venn.plot <- venn.diagram(
+  x = list(
+    a = a1$Gene.Symbol,
+    b = a2$Symbol,
+    d = b1$Gene.Symbol,
+    e = b2$Symbol
+  ),
+  filename = "Venn_4set_pretty.jpeg",
+  col = "transparent",
+  fill = c("cornflowerblue", "skyblue", "pink", "red"),
+  alpha = 0.50,
+  label.col = c("orange", "white", "darkorchid4", "white", 
+                "white", "white", "white", "white", "darkblue", "white", 
+                "white", "white", "white", "darkgreen", "white"),
+  cex = 1.5,
+  fontfamily = "",
+  fontface = "bold",
+  cat.col = c("darkblue", "darkgreen", "orange", "darkorchid4"),
+  cat.cex = 1.5,
+  cat.pos = 0,
+  cat.dist = 0.07,
+  cat.fontfamily = "serif",
+  rotation.degree = 0,
+  margin = 0.2
+);
