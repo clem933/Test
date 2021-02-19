@@ -1,0 +1,200 @@
+BiocManager::install('hdf5r')
+rm(list = ls())
+library(Seurat)
+library(dplyr)
+library(magrittr)
+setwd('E:/Desktop/Data/senescence scRNA/ageing atlas/h5')
+Y1K1 <- Read10X_h5("GSM3895924_Y1K1_filtered_feature_bc_matrix.h5")
+Y1K1 <-CreateSeuratObject(Y1K1 ,project = "rna") #1
+Y1K1$type = "young"
+alldata <- merge(Y1K1, c(Y1K2,), 
+           add.cell.ids = c("Y1K1", ))
+rm(Y1K1,)
+gc()
+as.data.frame(alldata@assays$RNA@counts[1:10, 1:2])
+head(alldata@meta.data, 10)
+
+################################
+########Calculate QC
+################################
+alldata <- PercentageFeatureSet(alldata, "^MT-", col.name = "percent_mito")
+alldata <- PercentageFeatureSet(alldata, "^RP[SL]", col.name = "percent_ribo")
+alldata <- PercentageFeatureSet(alldata, "^HB[^(P)]", col.name = "percent_hb")
+alldata <- PercentageFeatureSet(alldata, "PECAM1|PF4", col.name = "percent_plat")
+feats <- c("nFeature_RNA", "nCount_RNA", "percent_mito", "percent_ribo", "percent_hb")
+VlnPlot(alldata, group.by = "orig.ident", features = feats, pt.size = 0.1, ncol = 3) + 
+  NoLegend()
+FeatureScatter(alldata, "nCount_RNA", "nFeature_RNA", group.by = "orig.ident", pt.size = 0.5)
+
+alldata <- NormalizeData(alldata, normalization.method =  "LogNormalize",
+                     scale.factor = 10000)
+GetAssay(alldata,assay = "RNA")
+alldata <- FindVariableFeatures(alldata,
+                            selection.method = "vst", nfeatures = 2000)
+alldata <- ScaleData(alldata)
+alldata <- RunPCA(object = alldata, pc.genes = VariableFeatures(alldata))
+DimHeatmap(alldata, dims = 1:12, cells = 100, balanced = TRUE)
+ElbowPlot(alldata)
+alldata <- FindNeighbors(alldata, dims = 1:15)
+alldata <- FindClusters(alldata, resolution = 0.2)
+table(alldata@meta.data$RNA_snn_res.0.2)
+alldata <- FindClusters(alldata, resolution = 0.8)
+table(alldata@meta.data$RNA_snn_res.0.8)
+
+set.seed(123)
+alldata <- RunTSNE(object = alldata, dims = 1:15, do.fast = TRUE)
+DimPlot(alldata,reduction = "tsne",label=T)
+phe=data.frame(cell=rownames(alldata@meta.data),
+               res2=alldata@meta.data$RNA_snn_res.0.2,
+               res8=alldata@meta.data$RNA_snn_res.0.8,
+               cluster =alldata@meta.data$seurat_clusters)
+head(phe)
+table(phe$cluster)
+tsne_pos=Embeddings(alldata,'tsne')
+DimPlot(alldata,reduction = "tsne",label=T,split.by ='orig.ident')
+
+head(phe)
+table(phe$cluster)
+head(tsne_pos)
+dat=cbind(tsne_pos,phe)
+save(dat,file=paste0(pro,'_for_tSNE.pos.Rdata'))
+load(file=paste0(pro,'_for_tSNE.pos.Rdata'))
+library(ggplot2)
+p=ggplot(dat,aes(x=tSNE_1,y=tSNE_2,color=cluster))+geom_point(size=0.95)
+p=p+stat_ellipse(data=dat,aes(x=tSNE_1,y=tSNE_2,fill=cluster,color=cluster),
+                 geom = "polygon",alpha=0.2,level=0.9,type="t",linetype = 2,show.legend = F)+coord_fixed()
+print(p)
+theme= theme(panel.grid =element_blank()) +   ## 删去网格
+  theme(panel.border = element_blank(),panel.background = element_blank()) +   ## 删去外层边框
+  theme(axis.line = element_line(size=1, colour = "black"))
+p=p+theme+guides(colour = guide_legend(override.aes = list(size=5)))
+print(p)
+ggplot2::ggsave(filename = paste0(pro,'_tsne_res0.2.pdf'))
+
+plot1 <- FeatureScatter(sce, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(sce, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+CombinePlots(plots = list(plot1, plot2))
+ggplot2::ggsave(filename = paste0(pro,'_CombinePlots.pdf'))
+
+VlnPlot(sce, features = c("percent.ribo", "percent.mt"), ncol = 2)
+ggplot2::ggsave(filename = paste0(pro,'_mt-and-ribo.pdf'))
+VlnPlot(sce, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2)
+ggplot2::ggsave(filename = paste0(pro,'_counts-and-feature.pdf'))
+VlnPlot(sce, features = c("percent.ribo", "nCount_RNA"), ncol = 2)
+
+
+table(sce@meta.data$seurat_clusters)
+
+for( i in unique(sce@meta.data$seurat_clusters) ){
+  markers_df <- FindMarkers(object = sce, ident.1 = i, min.pct = 0.25)
+  print(x = head(markers_df))
+  markers_genes =  rownames(head(x = markers_df, n = 5))
+  VlnPlot(object = sce, features =markers_genes,log =T )
+  ggsave(filename=paste0(pro,'_VlnPlot_subcluster_',i,'_sce.markers_heatmap.pdf'))
+  FeaturePlot(object = sce, features=markers_genes )
+  ggsave(filename=paste0(pro,'_FeaturePlot_subcluster_',i,'_sce.markers_heatmap.pdf'))
+}
+
+sce.markers <- FindAllMarkers(object = sce, only.pos = TRUE, min.pct = 0.25,
+                              thresh.use = 0.25)
+
+DT::datatable(sce.markers)
+write.csv(sce.markers,file=paste0(pro,'_sce.markers.csv'))
+library(dplyr)
+top10 <- sce.markers %>% group_by(cluster) %>% top_n(10, avg_logFC)
+DoHeatmap(sce,top10$gene,size=3)
+ggsave(filename=paste0(pro,'_sce.markers_heatmap.pdf'))
+# FeaturePlot( sce,  top10$gene )
+# ggsave(filename=paste0(pro,'_sce.markers_FeaturePlot.pdf'),height = 49)
+
+
+library(SingleR)
+sce_for_SingleR <- GetAssayData(sce, slot="data")
+mouseImmu <- ImmGenData()
+pred.mouseImmu <- SingleR(test = sce_for_SingleR, ref = mouseImmu, labels = mouseImmu$label.main)
+
+mouseRNA <- MouseRNAseqData()
+pred.mouseRNA <- SingleR(test = sce_for_SingleR, ref = mouseRNA, labels = mouseRNA$label.fine )
+
+cellType=data.frame(seurat=sce@meta.data$seurat_clusters,
+                    mouseImmu=pred.mouseImmu$labels,
+                    mouseRNA=pred.mouseRNA$labels)
+sort(table(cellType[,2]))
+sort(table(cellType[,3]))
+table(cellType[,2:3])
+save(sce,cellType, file=paste0(pro,'_output.Rdata') )
+
+rm(list=ls())
+options(stringsAsFactors = F)
+library(Seurat)
+pro='S1'
+library(SingleR)
+load(file=paste0(pro,'_output.Rdata') )
+
+cg=names(tail(sort(table(cellType[,2]))))
+cellname=cellType[,2]
+cellname[!cellname %in% cg ]='other'
+table(sce@meta.data$seurat_clusters,cellname)
+table(cellname)
+# Epithelial cells, 0,2,5,7,8,12
+# Endothelial cells, 10
+# Fibroblasts , 1,3,6,9,14,15
+# Macrophages , 4,13,16
+# NKT , 11
+# other ,4,11
+# Stromal cells,
+cl=sce@meta.data$seurat_clusters
+ps=ifelse(cl %in% c(0,2,5,7,8,12),'epi',
+          ifelse(cl %in% c(1,3,6,9,14,15),'fibro',
+                 ifelse(cl %in% c(4,13,16),'macro',
+                        ifelse(cl %in% c(10),'endo',
+                               ifelse(cl %in% c(11),'NKT','other'
+                               )))))
+table(ps)
+cellname=paste(cl,ps)
+sce@meta.data$cellname=cellname
+DimPlot(sce,reduction = "tsne",label=T,group.by = 'cellname')
+ggplot2::ggsave(filename = paste0(pro,'_tsne_res0.2_singleR_raw.pdf'))
+dat$cluster=cellname
+library(ggplot2)
+p=ggplot(dat,aes(x=tSNE_1,y=tSNE_2,color=cluster))+geom_point(size=0.95)
+p=p+stat_ellipse(data=dat,aes(x=tSNE_1,y=tSNE_2,fill=cluster,color=cluster),
+                 geom = "polygon",alpha=0.2,level=0.9,type="t",linetype = 2,show.legend = F)+coord_fixed()
+print(p)
+theme= theme(panel.grid =element_blank()) +   ## 删去网格
+  theme(panel.border = element_blank(),panel.background = element_blank()) +   ## 删去外层边框
+  theme(axis.line = element_line(size=1, colour = "black"))
+p=p+theme+guides(colour = guide_legend(override.aes = list(size=5)))
+print(p)
+ggplot2::ggsave(filename = paste0(pro,'_tsne_res0.2_singleR_pretty.pdf'))
+
+filter_10x_object <-CreateSeuratObject(matrix ,project = "d615")
+
+fs=list.files(pattern = '.h5')
+fs                                        
+lapply(fs, function(x){
+  x=fs[i = 1:13]
+  print(x)
+  a=Read10X_h5( x )
+  a[1:4,1:4] 
+  library(stringr)
+  (p=str_split(x,'_',simplify = T)[,2])
+  sceList <- CreateSeuratObject( a ,project = p )
+  sceList
+})
+setwd('../')
+pro='integrated' 
+for (i in 1:length(sceList)) {
+  sceList[[i]] <- NormalizeData(sceList[[i]], verbose = FALSE)
+  sceList[[i]] <- FindVariableFeatures(sceList[[i]], selection.method = "vst", 
+                                       nfeatures = 2000, verbose = FALSE)
+}
+sceList
+sce.anchors <- FindIntegrationAnchors(object.list = sceList, dims = 1:30)
+sce.integrated <- IntegrateData(anchorset = sce.anchors, dims = 1:30)
+
+library(ggplot2)
+library(cowplot)
+# switch to integrated assay. The variable features of this assay are automatically
+# set during IntegrateData
+DefaultAssay(sce.integrated) <- "integrated"
